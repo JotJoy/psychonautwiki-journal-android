@@ -83,6 +83,7 @@ as a coding assistant. All decisions and reviews were done manually.
 - Saved test results per batch
 - Encrypted export / import
 - Optional app lock
+- Calculate approximate nicotine intake from Cigarette/Cigar weight
 
 ---
 
