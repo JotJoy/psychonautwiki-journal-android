@@ -1,3 +1,99 @@
+# PsychonautWiki Journal – Personal Fork
+
+This is a **personal fork** of  
+https://github.com/isaakhanimann/psychonautwiki-journal-android
+
+I use this fork as a **local, offline-first journal** with additional
+harm-reduction and safety-oriented features that fit my own workflow.
+
+This project is not intended to be a medical app.
+
+---
+
+## Disclaimer
+
+This app does **not** provide medical advice.
+
+- No dosing recommendations
+- No safety guarantees
+- No treatment guidance
+
+All information is **educational only**, based on publicly available sources
+and commonly discussed harm-reduction practices.
+
+Use at your own risk.
+
+---
+
+## What’s different from upstream
+
+This fork adds:
+
+### Harm reduction & safety
+- Offline substance articles (PsychonautWiki)
+- Clear warning and info callouts
+- Commonly reported effects per substance
+- Educational comfort / mitigation references
+- Phase-aware reminders (hydration, recovery, wind-down)
+- Optional break-time tracking
+
+### Journal & calendar
+- Hide selected substances from calendar views
+- Custom duration overrides (onset / peak / total)
+- Custom dosage defaults (no advice)
+- Fully supported user-added substances
+
+### Data & content
+- Manual article caching for offline use
+- Resume-safe downloads with progress
+- Storage usage overview and cache controls
+
+### Tapering
+- Standalone tapering calculator
+- Progress tracking
+- Visual taper overview
+- Optional reminders
+
+All features are opt-in and non-prescriptive.
+
+---
+
+## Privacy
+
+- All data stays **on-device**
+- No accounts
+- No analytics
+- No background network activity
+
+All downloads are explicitly triggered by the user.
+
+---
+
+## AI usage
+
+Some parts of this fork were built with the help of **Antigravity AI**
+as a coding assistant. All decisions and reviews were done manually.
+
+---
+
+## Planned (v1.1, not included yet)
+
+- Substance stock tracking
+- Test kit inventory
+- Saved test results per batch
+- Encrypted export / import
+- Optional app lock
+
+---
+
+## License
+
+Same license as upstream. See `LICENSE`.
+
+---
+
+This fork exists for personal use and experimentation.
+
 # ⚠️ Project Archived
 
 This repository has been archived.
