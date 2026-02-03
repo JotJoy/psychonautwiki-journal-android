@@ -83,6 +83,11 @@ as a coding assistant. All decisions and reviews were done manually.
 - Saved test results per batch
 - Encrypted export / import
 - Optional app lock
+- Calculate approximate nicotine intake from Cigarette/Cigar weight
+- Calculate very approximate THC Content of Joint
+- Calculate current BAC Content
+- Auto calculate mg of alcohol in a drink
+- Widgets
 
 ---
 
