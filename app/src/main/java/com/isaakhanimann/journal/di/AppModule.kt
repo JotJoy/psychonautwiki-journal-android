@@ -28,6 +28,9 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.isaakhanimann.journal.data.room.AppDatabase
 import com.isaakhanimann.journal.data.room.experiences.ExperienceDao
+import com.isaakhanimann.journal.data.room.experiences.SubstanceMetadataDao
+import com.isaakhanimann.journal.data.room.experiences.TaperDao
+import com.isaakhanimann.journal.data.room.articles.ArticleDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,6 +46,23 @@ object AppModule {
     @Provides
     fun provideExperiencesDao(appDatabase: AppDatabase): ExperienceDao =
         appDatabase.experienceDao()
+
+    @Singleton
+    @Provides
+    fun provideSubstanceMetadataDao(appDatabase: AppDatabase): SubstanceMetadataDao =
+        appDatabase.substanceMetadataDao()
+
+
+
+    @Singleton
+    @Provides
+    fun provideTaperDao(appDatabase: AppDatabase): TaperDao =
+        appDatabase.taperDao()
+
+    @Singleton
+    @Provides
+    fun provideArticleDao(appDatabase: AppDatabase): ArticleDao =
+        appDatabase.articleDao()
 
     @Singleton
     @Provides

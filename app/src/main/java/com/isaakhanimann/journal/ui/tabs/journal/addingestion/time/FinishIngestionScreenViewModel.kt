@@ -65,6 +65,8 @@ enum class IngestionTimePickerOption {
 @HiltViewModel
 class FinishIngestionScreenViewModel @Inject constructor(
     private val experienceRepo: ExperienceRepository,
+    private val substanceRepo: com.isaakhanimann.journal.data.substances.repositories.SubstanceRepository,
+    private val harmReductionReminderManager: com.isaakhanimann.journal.data.reminders.HarmReductionReminderManager,
     userPreferences: UserPreferences,
     state: SavedStateHandle
 ) : ViewModel() {
@@ -272,36 +274,48 @@ class FinishIngestionScreenViewModel @Inject constructor(
     }
 
     private suspend fun createAndSaveIngestion() {
-        val substanceCompanion = SubstanceCompanion(
+        val existingCompanion = experienceRepo.getAllSubstanceCompanionsFlow().first().firstOrNull { it.substanceName == substanceName }
+        val companionToSave = existingCompanion?.copy(color = selectedColor) ?: SubstanceCompanion(
             substanceName,
             color = selectedColor
         )
+        
+        val ingestionTime = localDateTimeStartFlow.first().atZone(ZoneId.systemDefault()).toInstant()
+        
         val oldIdToUse = selectedExperienceFlow.firstOrNull()?.experience?.id
         if (oldIdToUse == null) {
             val newIdToUse = newExperienceIdToUseFlow.firstOrNull() ?: 1
-            val ingestionTime =
-                localDateTimeStartFlow.first().atZone(ZoneId.systemDefault()).toInstant()
             val newExperience = Experience(
                 id = newIdToUse,
                 title = enteredTitle,
                 text = "",
                 creationDate = Instant.now(),
                 sortDate = ingestionTime,
-                location = null // todo: allow to add real location
+                location = null
             )
             val newIngestion = createNewIngestion(newExperience.id)
             experienceRepo.insertIngestionExperienceAndCompanion(
                 ingestion = newIngestion,
                 experience = newExperience,
-                substanceCompanion = substanceCompanion
+                substanceCompanion = companionToSave
             )
         } else {
             val newIngestion = createNewIngestion(oldIdToUse)
             experienceRepo.insertIngestionAndCompanion(
                 ingestion = newIngestion,
-                substanceCompanion = substanceCompanion
+                substanceCompanion = companionToSave
             )
         }
+
+        // Trigger phase-aware reminders
+        val substance = substanceRepo.getSubstance(substanceName)
+        harmReductionReminderManager.scheduleRemindersForIngestion(
+            substance = substance,
+            customSubstanceName = if (substance == null) substanceName else null,
+            route = administrationRoute,
+            companion = companionToSave,
+            ingestionTime = ingestionTime
+        )
     }
 
     private suspend fun createNewIngestion(experienceId: Int): Ingestion {

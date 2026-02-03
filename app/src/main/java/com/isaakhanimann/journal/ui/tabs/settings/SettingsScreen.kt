@@ -95,6 +95,7 @@ fun SettingsPreview() {
         navigateToSubstanceColors = {},
         navigateToCustomUnits = {},
         navigateToDonate = {},
+        navigateToDataContent = {},
         importFile = {},
         exportFile = {},
         snackbarHostState = remember { SnackbarHostState() },
@@ -104,6 +105,8 @@ fun SettingsPreview() {
         saveIsTimelineHidden = {},
         areSubstanceHeightsIndependent = false,
         saveAreSubstanceHeightsIndependent = {},
+        areEducationalRemindersEnabled = true,
+        saveAreEducationalRemindersEnabled = {},
     )
 }
 
@@ -115,6 +118,7 @@ fun SettingsScreen(
     navigateToSubstanceColors: () -> Unit,
     navigateToCustomUnits: () -> Unit,
     navigateToDonate: () -> Unit,
+    navigateToDataContent: () -> Unit,
 ) {
     SettingsScreen(
         navigateToFAQ = navigateToFAQ,
@@ -122,6 +126,7 @@ fun SettingsScreen(
         navigateToSubstanceColors = navigateToSubstanceColors,
         navigateToCustomUnits = navigateToCustomUnits,
         navigateToDonate = navigateToDonate,
+        navigateToDataContent = navigateToDataContent,
         deleteEverything = viewModel::deleteEverything,
         importFile = viewModel::importFile,
         exportFile = viewModel::exportFile,
@@ -132,6 +137,8 @@ fun SettingsScreen(
         saveIsTimelineHidden = viewModel::saveIsTimelineHidden,
         areSubstanceHeightsIndependent = viewModel.areSubstanceHeightsIndependentFlow.collectAsState().value,
         saveAreSubstanceHeightsIndependent = viewModel::saveAreSubstanceHeightsIndependent,
+        areEducationalRemindersEnabled = viewModel.areEducationalRemindersEnabledFlow.collectAsState().value,
+        saveAreEducationalRemindersEnabled = viewModel::saveAreEducationalRemindersEnabled,
     )
 }
 
@@ -143,6 +150,7 @@ fun SettingsScreen(
     navigateToSubstanceColors: () -> Unit,
     navigateToCustomUnits: () -> Unit,
     navigateToDonate: () -> Unit,
+    navigateToDataContent: () -> Unit,
     deleteEverything: () -> Unit,
     importFile: (uri: Uri) -> Unit,
     exportFile: (uri: Uri) -> Unit,
@@ -153,6 +161,8 @@ fun SettingsScreen(
     saveIsTimelineHidden: (Boolean) -> Unit,
     areSubstanceHeightsIndependent: Boolean,
     saveAreSubstanceHeightsIndependent: (Boolean) -> Unit,
+    areEducationalRemindersEnabled: Boolean,
+    saveAreEducationalRemindersEnabled: (Boolean) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -268,7 +278,35 @@ fun SettingsScreen(
                     )
                 }
             }
+            CardWithTitle(title = "Harm Reduction & Reminders") {
+                 Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = horizontalPadding),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                         Text(text = "Educational Reminders")
+                         Text(
+                             text = "Get harm reduction tips and break reminders.",
+                             style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                         )
+                    }
+                    Switch(
+                        checked = areEducationalRemindersEnabled,
+                        onCheckedChange = saveAreEducationalRemindersEnabled
+                    )
+                }
+            }
             CardWithTitle(title = "App data", innerPaddingHorizontal = 0.dp) {
+                SettingsButton(
+                    imageVector = Icons.Outlined.FileDownload,
+                    text = "Data & Content"
+                ) {
+                    navigateToDataContent()
+                }
+                HorizontalDivider()
                 var isShowingExportDialog by remember { mutableStateOf(false) }
                 SettingsButton(imageVector = Icons.Outlined.FileUpload, text = "Export File") {
                     isShowingExportDialog = true

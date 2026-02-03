@@ -53,6 +53,10 @@ class SettingsViewModel @Inject constructor(
         userPreferences.saveIsTimelineHidden(value)
     }
 
+    fun saveAreEducationalRemindersEnabled(value: Boolean) = viewModelScope.launch {
+        userPreferences.saveAreEducationalRemindersEnabled(value)
+    }
+
     val isTimelineHiddenFlow = userPreferences.isTimelineHiddenFlow.stateIn(
         initialValue = false,
         scope = viewModelScope,
@@ -67,6 +71,12 @@ class SettingsViewModel @Inject constructor(
 
     val areDosageDotsHiddenFlow = userPreferences.areDosageDotsHiddenFlow.stateIn(
         initialValue = false,
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000)
+    )
+
+    val areEducationalRemindersEnabledFlow = userPreferences.areEducationalRemindersEnabledFlow.stateIn(
+        initialValue = true,
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000)
     )

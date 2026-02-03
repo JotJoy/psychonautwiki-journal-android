@@ -36,6 +36,10 @@ import javax.inject.Inject
 @HiltViewModel
 class EditCustomSubstanceViewModel @Inject constructor(
     val experienceRepo: ExperienceRepository,
+    private val substanceRepo: com.isaakhanimann.journal.data.substances.repositories.SubstanceRepository,
+    private val dosageRepository: com.isaakhanimann.journal.data.substances.repositories.HarmReductionRepository,
+    private val harmReductionReminderManager: com.isaakhanimann.journal.data.reminders.HarmReductionReminderManager,
+    private val reminderScheduler: com.isaakhanimann.journal.data.reminders.ReminderScheduler,
     state: SavedStateHandle
 ) : ViewModel() {
 
@@ -43,6 +47,19 @@ class EditCustomSubstanceViewModel @Inject constructor(
     var name by mutableStateOf("")
     var units by mutableStateOf("")
     var description by mutableStateOf("")
+
+    // Advanced settings
+    var hideFromCalendar by mutableStateOf(false)
+    var recommendedBreakDays by mutableStateOf<Int?>(null)
+    
+    // Reminders
+    var hydrationRemindersEnabled by mutableStateOf(false)
+    var recoveryReminderEnabled by mutableStateOf(false)
+    var sleepReminderEnabled by mutableStateOf(false)
+
+    // Dosage and Duration state
+    var customDosages by mutableStateOf<Map<com.isaakhanimann.journal.data.substances.AdministrationRoute, com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage>>(emptyMap())
+    var substanceCompanion by mutableStateOf<com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion?>(null)
 
     val isValid get() = name.isNotBlank() && units.isNotBlank()
 
@@ -56,6 +73,26 @@ class EditCustomSubstanceViewModel @Inject constructor(
             name = customSubstance.name
             units = customSubstance.units
             description = customSubstance.description
+
+            // Load advanced settings
+            launch {
+                experienceRepo.getSubstanceCompanionFlow(name).collect { companion ->
+                    substanceCompanion = companion
+                    hideFromCalendar = companion?.hideFromCalendar ?: false
+                    recommendedBreakDays = companion?.recommendedBreakDays
+                    hydrationRemindersEnabled = companion?.hydrationRemindersEnabled ?: false
+                    recoveryReminderEnabled = companion?.recoveryReminderEnabled ?: false
+                    sleepReminderEnabled = companion?.sleepReminderEnabled ?: false
+                }
+            }
+
+            launch {
+                dosageRepository.getSubstanceDosagesFlow(name).collect { dosages ->
+                    customDosages = dosages.associateBy { dosage ->
+                        dosage.getRouteEnum() ?: com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL
+                    }
+                }
+            }
         }
     }
 
@@ -68,6 +105,134 @@ class EditCustomSubstanceViewModel @Inject constructor(
                 description
             )
             experienceRepo.insert(customSubstance)
+
+            // Update companion
+            val currentCompanion = substanceCompanion ?: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                substanceName = name,
+                color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+            )
+            val updatedCompanion = currentCompanion.copy(
+                substanceName = name, // in case name changed
+                hideFromCalendar = hideFromCalendar,
+                recommendedBreakDays = recommendedBreakDays,
+                hydrationRemindersEnabled = hydrationRemindersEnabled,
+                recoveryReminderEnabled = recoveryReminderEnabled,
+                sleepReminderEnabled = sleepReminderEnabled
+            )
+            if (substanceCompanion == null) {
+                experienceRepo.insert(updatedCompanion)
+            } else {
+                experienceRepo.update(updatedCompanion)
+            }
+        }
+    }
+
+    fun toggleHideFromCalendar(hide: Boolean) {
+        hideFromCalendar = hide
+    }
+
+
+    fun setHydrationReminders(enabled: Boolean) {
+        hydrationRemindersEnabled = enabled
+        if (enabled) {
+            viewModelScope.launch {
+                val companion = substanceCompanion ?: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                    substanceName = name,
+                    color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+                )
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceRepo.getSubstance(name),
+                    customSubstanceName = name,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = companion.copy(hydrationRemindersEnabled = true),
+                    ingestionTime = java.time.Instant.now()
+                )
+            }
+        }
+    }
+
+    fun setRecoveryReminder(enabled: Boolean) {
+        recoveryReminderEnabled = enabled
+        if (enabled) {
+            viewModelScope.launch {
+                val companion = substanceCompanion ?: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                    substanceName = name,
+                    color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+                )
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceRepo.getSubstance(name),
+                    customSubstanceName = name,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = companion.copy(recoveryReminderEnabled = true),
+                    ingestionTime = java.time.Instant.now()
+                )
+            }
+        }
+    }
+
+    fun setSleepReminder(enabled: Boolean) {
+        sleepReminderEnabled = enabled
+        if (enabled) {
+            viewModelScope.launch {
+                val companion = substanceCompanion ?: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                    substanceName = name,
+                    color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+                )
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceRepo.getSubstance(name),
+                    customSubstanceName = name,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = companion.copy(sleepReminderEnabled = true),
+                    ingestionTime = java.time.Instant.now()
+                )
+            }
+        }
+    }
+
+    fun saveDosage(dosage: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) {
+        viewModelScope.launch {
+            if (dosage.id == 0) {
+                dosageRepository.insertDosage(dosage)
+            } else {
+                dosageRepository.updateDosage(dosage)
+            }
+        }
+    }
+
+    fun deleteDosage(dosage: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) {
+        viewModelScope.launch {
+            dosageRepository.deleteDosage(dosage)
+        }
+    }
+
+    fun updateSubstanceCompanion(companion: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion) {
+        viewModelScope.launch {
+            if (substanceCompanion != null) {
+                experienceRepo.update(companion)
+            } else {
+                experienceRepo.insert(companion)
+            }
+        }
+    }
+
+    fun deleteCustomDurations() {
+        viewModelScope.launch {
+            val companion = substanceCompanion
+            if (companion != null) {
+                val cleared = companion.copy(
+                    onsetMin = null,
+                    onsetMax = null,
+                    comeupMin = null,
+                    comeupMax = null,
+                    peakMin = null,
+                    peakMax = null,
+                    offsetMin = null,
+                    offsetMax = null,
+                    totalMin = null,
+                    totalMax = null
+                )
+                experienceRepo.update(cleared)
+            }
         }
     }
 

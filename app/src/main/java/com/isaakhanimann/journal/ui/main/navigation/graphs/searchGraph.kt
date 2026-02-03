@@ -21,6 +21,7 @@ package com.isaakhanimann.journal.ui.main.navigation.graphs
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.navigation
+import androidx.navigation.toRoute
 import com.isaakhanimann.journal.ui.main.navigation.composableWithTransitions
 import com.isaakhanimann.journal.ui.main.navigation.DrugsTopLevelRoute
 import com.isaakhanimann.journal.ui.tabs.journal.experience.timeline.ExplainTimelineScreen
@@ -31,6 +32,7 @@ import com.isaakhanimann.journal.ui.tabs.search.custom.AddCustomSubstanceScreen
 import com.isaakhanimann.journal.ui.tabs.search.custom.EditCustomSubstanceScreen
 import com.isaakhanimann.journal.ui.tabs.search.substance.SubstanceScreen
 import com.isaakhanimann.journal.ui.tabs.search.substance.category.CategoryScreen
+import com.isaakhanimann.journal.ui.tabs.safer.SubstanceArticleScreen
 import kotlinx.serialization.Serializable
 
 fun NavGraphBuilder.searchGraph(navController: NavHostController) {
@@ -70,7 +72,17 @@ fun NavGraphBuilder.searchGraph(navController: NavHostController) {
                 navigateToVolumetricDosingScreen = {
                     navController.navigate(VolumetricDosingOnSearchTabRoute)
                 },
+                navigateToArticleScreen = { substanceName ->
+                    navController.navigate(SubstanceArticleRoute(substanceName))
+                }
             )
+        }
+        composableWithTransitions<SubstanceArticleRoute> { backStackEntry ->
+             val route: SubstanceArticleRoute = backStackEntry.toRoute()
+             SubstanceArticleScreen(
+                 substanceName = route.substanceName,
+                 navigateBack = navController::popBackStack
+             )
         }
         composableWithTransitions<CategoryRoute> {
             CategoryScreen()
@@ -116,3 +128,6 @@ object ExplainTimelineOnSearchTabRoute
 
 @Serializable
 object DosageExplanationRouteOnSearchTab
+
+@Serializable
+data class SubstanceArticleRoute(val substanceName: String)

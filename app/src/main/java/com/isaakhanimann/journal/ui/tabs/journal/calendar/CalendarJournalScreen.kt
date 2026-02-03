@@ -221,7 +221,8 @@ fun Day(
             mutableStateOf(
                 ExperienceInfo(
                     experienceIds = emptyList(),
-                    colors = emptyList()
+                    colors = emptyList(),
+                    hasHiddenEntries = false
                 )
             )
         }
@@ -276,6 +277,18 @@ fun Day(
                         .clip(RoundedCornerShape(2.dp)),
                     colors = experienceInfos.colors
                 )
+                if (experienceInfos.hasHiddenEntries) {
+                     Box(
+                         modifier = Modifier
+                             .padding(top = 2.dp)
+                             .background(
+                                 color = if (isSystemInDarkTheme()) Color.DarkGray else Color.LightGray,
+                                 shape = RoundedCornerShape(50)
+                             )
+                             .height(4.dp)
+                             .aspectRatio(1f)
+                     )
+                }
             }
         }
     }

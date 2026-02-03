@@ -18,6 +18,7 @@
 
 package com.isaakhanimann.journal.data.room.experiences.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.serialization.Serializable
@@ -28,4 +29,31 @@ data class SubstanceCompanion(
     @PrimaryKey(autoGenerate = false)
     val substanceName: String,
     var color: AdaptiveColor,
+    
+    // Calendar Display
+    @ColumnInfo(defaultValue = "0")
+    val hideFromCalendar: Boolean = false,
+    
+    // Harm Reduction
+    val recommendedBreakDays: Int? = null,
+
+    // Durations (in minutes)
+    val onsetMin: Double? = null,
+    val onsetMax: Double? = null,
+    val comeupMin: Double? = null,
+    val comeupMax: Double? = null,
+    val peakMin: Double? = null,
+    val peakMax: Double? = null,
+    val offsetMin: Double? = null,
+    val offsetMax: Double? = null,
+    val totalMin: Double? = null,
+    val totalMax: Double? = null,
+
+    // Reminder Settings
+    @ColumnInfo(defaultValue = "0")
+    val hydrationRemindersEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val recoveryReminderEnabled: Boolean = false,
+    @ColumnInfo(defaultValue = "0")
+    val sleepReminderEnabled: Boolean = false
 )

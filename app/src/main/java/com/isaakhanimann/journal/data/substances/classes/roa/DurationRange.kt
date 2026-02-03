@@ -30,6 +30,7 @@ data class DurationRange(
 
     val minInSec: Float? = if (units != null) min?.times(units.inSecondsMultiplier) else null
     val maxInSec: Float? = if (units != null) max?.times(units.inSecondsMultiplier) else null
+    val averageInSec: Float? = if (minInSec != null && maxInSec != null) (minInSec + maxInSec) / 2f else minInSec ?: maxInSec
 
     fun interpolateAtValueInSeconds(value: Float): Float? {
         if (min == null || max == null || units == null) return null

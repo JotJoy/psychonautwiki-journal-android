@@ -37,13 +37,20 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
+import java.time.Instant
 import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
 class SubstanceViewModel @Inject constructor(
     substanceRepo: SubstanceRepository,
-    experienceRepo: ExperienceRepository,
+    private val experienceRepo: ExperienceRepository,
+    private val harmReductionRepository: com.isaakhanimann.journal.data.substances.classes.harm_reduction.HarmReductionRepository,
+    private val substanceRepository: SubstanceRepository,
+    private val dosageRepository: com.isaakhanimann.journal.data.substances.repositories.HarmReductionRepository,
+    private val harmReductionReminderManager: com.isaakhanimann.journal.data.reminders.HarmReductionReminderManager,
+    private val reminderScheduler: com.isaakhanimann.journal.data.reminders.ReminderScheduler,
     state: SavedStateHandle,
 ) : ViewModel() {
 
@@ -111,4 +118,203 @@ class SubstanceViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000)
         )
+
+    // Harm Reduction
+    val sideEffects = harmReductionRepository.getCommonSideEffects(substanceWithCategories.substance)
+    
+    val hydrationRemindersEnabled = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+        .map { it?.hydrationRemindersEnabled ?: false }
+        .stateIn(
+            initialValue = false,
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    val recoveryReminderEnabled = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+        .map { it?.recoveryReminderEnabled ?: false }
+        .stateIn(
+            initialValue = false,
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    val sleepReminderEnabled = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+        .map { it?.sleepReminderEnabled ?: false }
+        .stateIn(
+            initialValue = false,
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    
+    // Calendar Display
+    val hideFromCalendar = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+        .map { it?.hideFromCalendar ?: false }
+        .stateIn(
+            initialValue = false,
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    
+    fun toggleHideFromCalendar(hide: Boolean) {
+        viewModelScope.launch {
+            val existingCompanion = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+                .map { it }
+                .stateIn(viewModelScope)
+                .value
+                
+            if (existingCompanion != null) {
+                // Update existing companion
+                val updated = existingCompanion.copy(hideFromCalendar = hide)
+                experienceRepo.update(updated)
+            } else {
+                // Create new companion with default color and hide setting
+                val newCompanion = com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                    substanceName = substanceWithCategories.substance.name,
+                    color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE,
+                    hideFromCalendar = hide
+                )
+                experienceRepo.insert(newCompanion)
+            }
+        }
+    }
+    
+    fun setHydrationReminders(enabled: Boolean) {
+        viewModelScope.launch {
+            val companion = getOrCreateCompanion()
+            val updated = companion.copy(hydrationRemindersEnabled = enabled)
+            experienceRepo.update(updated)
+            
+            if (enabled) {
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceWithCategories.substance,
+                    customSubstanceName = null,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = updated,
+                    ingestionTime = Instant.now()
+                )
+            }
+        }
+    }
+    
+    fun setRecoveryReminder(enabled: Boolean) {
+        viewModelScope.launch {
+            val companion = getOrCreateCompanion()
+            val updated = companion.copy(recoveryReminderEnabled = enabled)
+            experienceRepo.update(updated)
+            
+            if (enabled) {
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceWithCategories.substance,
+                    customSubstanceName = null,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = updated,
+                    ingestionTime = Instant.now()
+                )
+            }
+        }
+    }
+    
+    fun setSleepReminder(enabled: Boolean) {
+        viewModelScope.launch {
+            val companion = getOrCreateCompanion()
+            val updated = companion.copy(sleepReminderEnabled = enabled)
+            experienceRepo.update(updated)
+            
+            if (enabled) {
+                harmReductionReminderManager.scheduleRemindersForIngestion(
+                    substance = substanceWithCategories.substance,
+                    customSubstanceName = null,
+                    route = com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL,
+                    companion = updated,
+                    ingestionTime = Instant.now()
+                )
+            }
+        }
+    }
+
+    private suspend fun getOrCreateCompanion(): com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion {
+        val existing = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name).first()
+        if (existing != null) return existing
+        
+        val newCompanion = com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+            substanceName = substanceWithCategories.substance.name,
+            color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+        )
+        experienceRepo.insert(newCompanion)
+        return newCompanion
+    }
+    
+    
+    fun getMitigationInfo(type: com.isaakhanimann.journal.data.substances.classes.harm_reduction.MitigationType) =
+        harmReductionRepository.getMitigationInfo(type)
+    
+    
+    // Custom Dosages
+    
+    val customDosages = dosageRepository.getSubstanceDosagesFlow(substanceWithCategories.substance.name)
+        .map { dosages ->
+            dosages.associateBy { dosage ->
+                dosage.getRouteEnum() ?: com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL
+            }
+        }
+        .stateIn(
+            initialValue = emptyMap(),
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    
+    fun saveDosage(dosage: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) {
+        viewModelScope.launch {
+            if (dosage.id == 0) {
+                dosageRepository.insertDosage(dosage)
+            } else {
+                dosageRepository.updateDosage(dosage)
+            }
+        }
+    }
+    
+    fun deleteDosage(dosage: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) {
+        viewModelScope.launch {
+            dosageRepository.deleteDosage(dosage)
+        }
+    }
+    
+    // Custom Durations (via SubstanceCompanion)
+    
+    val substanceCompanion = experienceRepo.getSubstanceCompanionFlow(substanceWithCategories.substance.name)
+        .stateIn(
+            initialValue = null,
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000)
+        )
+    
+    fun updateSubstanceCompanion(companion: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion) {
+        viewModelScope.launch {
+            val existing = substanceCompanion.value
+            if (existing != null) {
+                experienceRepo.update(companion)
+            } else {
+                experienceRepo.insert(companion)
+            }
+        }
+    }
+    
+    fun deleteCustomDurations() {
+        viewModelScope.launch {
+            val companion = substanceCompanion.value
+            if (companion != null) {
+                val cleared = companion.copy(
+                    onsetMin = null,
+                    onsetMax = null,
+                    comeupMin = null,
+                    comeupMax = null,
+                    peakMin = null,
+                    peakMax = null,
+                    offsetMin = null,
+                    offsetMax = null,
+                    totalMin = null,
+                    totalMax = null
+                )
+                experienceRepo.update(cleared)
+            }
+        }
+    }
 }

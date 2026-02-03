@@ -35,18 +35,32 @@ class DayViewModel @Inject constructor(
     suspend fun getExperienceInfo(day: CalendarDay): ExperienceInfo {
         val startOfDay = day.date.atStartOfDay().getInstant()
         val endOfDay = startOfDay.plusMillis(24 * 60 * 60 * 1000)
-        val ingestions = experienceRepo.getIngestionsWithCompanions(
+        val ingestions = experienceRepo.getIngestionsWithCompanionsAndExperience(
             fromInstant = startOfDay,
             toInstant = endOfDay
         )
+        // Filter out entries hidden by experience OR by substance companion
+        val visibleIngestions = ingestions.filter { 
+            it.experience?.isHiddenFromCalendar != true &&
+            it.substanceCompanion?.hideFromCalendar != true
+        }
+        
+        // Check if there are any hidden entries this day (either type)
+        val hasHiddenEntries = ingestions.any { 
+            it.experience?.isHiddenFromCalendar == true ||
+            it.substanceCompanion?.hideFromCalendar == true
+        }
+
         return ExperienceInfo(
-            experienceIds = ingestions.map { it.ingestion.experienceId }.toSet().toList(),
-            colors = ingestions.mapNotNull { it.substanceCompanion?.color }
+            experienceIds = visibleIngestions.map { it.ingestion.experienceId }.toSet().toList(),
+            colors = visibleIngestions.mapNotNull { it.substanceCompanion?.color },
+            hasHiddenEntries = hasHiddenEntries
         )
     }
 }
 
 data class ExperienceInfo(
     val experienceIds: List<Int>,
-    val colors: List<AdaptiveColor>
+    val colors: List<AdaptiveColor>,
+    val hasHiddenEntries: Boolean = false
 )

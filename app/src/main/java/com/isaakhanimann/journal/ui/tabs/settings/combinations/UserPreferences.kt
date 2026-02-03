@@ -46,6 +46,7 @@ class UserPreferences @Inject constructor(private val dataStore: DataStore<Prefe
         val KEY_HIDE_DOSAGE_DOTS = booleanPreferencesKey("key_hide_dosage_dots")
         val KEY_ARE_SUBSTANCE_HEIGHTS_INDEPENDENT = booleanPreferencesKey("KEY_ARE_SUBSTANCE_HEIGHTS_INDEPENDENT")
         val KEY_IS_TIMELINE_HIDDEN = booleanPreferencesKey("KEY_IS_TIMELINE_HIDDEN")
+        val KEY_ARE_EDUCATIONAL_REMINDERS_ENABLED = booleanPreferencesKey("KEY_ARE_EDUCATIONAL_REMINDERS_ENABLED")
     }
 
     suspend fun saveTimeDisplayOption(value: SavedTimeDisplayOption) {
@@ -133,6 +134,17 @@ class UserPreferences @Inject constructor(private val dataStore: DataStore<Prefe
     suspend fun saveIsTimelineHidden(value: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.KEY_IS_TIMELINE_HIDDEN] = value
+        }
+    }
+
+    val areEducationalRemindersEnabledFlow: Flow<Boolean> = dataStore.data
+        .map { preferences ->
+            preferences[PreferencesKeys.KEY_ARE_EDUCATIONAL_REMINDERS_ENABLED] ?: true
+        }
+
+    suspend fun saveAreEducationalRemindersEnabled(value: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.KEY_ARE_EDUCATIONAL_REMINDERS_ENABLED] = value
         }
     }
 }

@@ -39,9 +39,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.GppBad
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,17 +52,26 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
@@ -82,6 +93,8 @@ import com.isaakhanimann.journal.ui.tabs.search.substance.roa.ToleranceSection
 import com.isaakhanimann.journal.ui.tabs.search.substance.roa.dose.RoaDoseView
 import com.isaakhanimann.journal.ui.tabs.search.substance.roa.duration.RoaDurationView
 import com.isaakhanimann.journal.ui.tabs.search.substance.roa.toReadableString
+import com.isaakhanimann.journal.ui.tabs.search.substance.customduration.hasCustomDurations
+import com.isaakhanimann.journal.ui.tabs.search.substance.customduration.toReadableDuration
 import com.isaakhanimann.journal.ui.theme.JournalTheme
 import com.isaakhanimann.journal.ui.theme.horizontalPadding
 import com.isaakhanimann.journal.ui.theme.verticalPaddingCards
@@ -98,8 +111,16 @@ fun SubstanceScreen(
     navigateToVolumetricDosingScreen: () -> Unit,
     navigateToExplainTimeline: () -> Unit,
     navigateToCategoryScreen: (categoryName: String) -> Unit,
+    navigateToArticleScreen: (substanceName: String) -> Unit,
     viewModel: SubstanceViewModel = hiltViewModel()
 ) {
+    val hydrationRemindersEnabled by viewModel.hydrationRemindersEnabled.collectAsState()
+    val recoveryReminderEnabled by viewModel.recoveryReminderEnabled.collectAsState()
+    val sleepReminderEnabled by viewModel.sleepReminderEnabled.collectAsState()
+    val hideFromCalendar by viewModel.hideFromCalendar.collectAsState()
+    val customDosages: Map<com.isaakhanimann.journal.data.substances.AdministrationRoute, com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage> by viewModel.customDosages.collectAsState()
+    val substanceCompanion by viewModel.substanceCompanion.collectAsState()
+    
     SubstanceScreen(
         timelineDisplayOption = viewModel.timelineDisplayOptionFlow.collectAsState().value,
         ingestionTime = viewModel.ingestionTimeFlow.collectAsState().value,
@@ -110,8 +131,25 @@ fun SubstanceScreen(
         navigateToVolumetricDosingScreen = navigateToVolumetricDosingScreen,
         navigateToCategoryScreen = navigateToCategoryScreen,
         navigateToExplainTimeline = navigateToExplainTimeline,
+        navigateToArticleScreen = navigateToArticleScreen,
         substanceWithCategories = viewModel.substanceWithCategories,
         customUnits = viewModel.customUnitsFlow.collectAsState().value,
+        sideEffects = viewModel.sideEffects,
+        hydrationRemindersEnabled = hydrationRemindersEnabled,
+        onHydrationRemindersChange = viewModel::setHydrationReminders,
+        recoveryReminderEnabled = recoveryReminderEnabled,
+        onRecoveryReminderChange = viewModel::setRecoveryReminder,
+        sleepReminderEnabled = sleepReminderEnabled,
+        onSleepReminderChange = viewModel::setSleepReminder,
+        getMitigationInfo = viewModel::getMitigationInfo,
+        hideFromCalendar = hideFromCalendar,
+        onToggleHideFromCalendar = viewModel::toggleHideFromCalendar,
+        customDosages = customDosages,
+        onSaveDosage = viewModel::saveDosage,
+        onDeleteDosage = viewModel::deleteDosage,
+        substanceCompanion = substanceCompanion,
+        onUpdateSubstanceCompanion = viewModel::updateSubstanceCompanion,
+        onDeleteCustomDurations = viewModel::deleteCustomDurations
     )
 }
 
@@ -130,7 +168,9 @@ fun SubstanceScreenPreview(
             navigateToSaferStimulantsScreen = {},
             navigateToVolumetricDosingScreen = {},
             navigateToExplainTimeline = {},
+
             navigateToCategoryScreen = {},
+            navigateToArticleScreen = {},
             substanceWithCategories = substanceWithCategories,
             customUnits = listOf(
                 CustomUnit.mdmaSample
@@ -151,8 +191,25 @@ fun SubstanceScreen(
     navigateToVolumetricDosingScreen: () -> Unit,
     navigateToExplainTimeline: () -> Unit,
     navigateToCategoryScreen: (categoryName: String) -> Unit,
+    navigateToArticleScreen: (substanceName: String) -> Unit,
     substanceWithCategories: SubstanceWithCategories,
-    customUnits: List<CustomUnit>
+    customUnits: List<CustomUnit>,
+    sideEffects: List<com.isaakhanimann.journal.data.substances.classes.harm_reduction.SideEffect> = emptyList(),
+    hydrationRemindersEnabled: Boolean = false,
+    onHydrationRemindersChange: (Boolean) -> Unit = {},
+    recoveryReminderEnabled: Boolean = false,
+    onRecoveryReminderChange: (Boolean) -> Unit = {},
+    sleepReminderEnabled: Boolean = false,
+    onSleepReminderChange: (Boolean) -> Unit = {},
+    getMitigationInfo: (com.isaakhanimann.journal.data.substances.classes.harm_reduction.MitigationType) -> com.isaakhanimann.journal.data.substances.classes.harm_reduction.MitigationInfo = { throw IllegalArgumentException() },
+    hideFromCalendar: Boolean = false,
+    onToggleHideFromCalendar: (Boolean) -> Unit = {},
+    customDosages: Map<com.isaakhanimann.journal.data.substances.AdministrationRoute, com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage> = emptyMap(),
+    onSaveDosage: (com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) -> Unit = {},
+    onDeleteDosage: (com.isaakhanimann.journal.data.room.experiences.entities.SubstanceDosage) -> Unit = {},
+    substanceCompanion: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion? = null,
+    onUpdateSubstanceCompanion: (com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion) -> Unit = {},
+    onDeleteCustomDurations: () -> Unit = {}
 ) {
     val substance = substanceWithCategories.substance
     val uriHandler = LocalUriHandler.current
@@ -162,7 +219,7 @@ fun SubstanceScreen(
                 title = { Text(substance.name) },
                 actions = {
                     TextButton(
-                        onClick = { uriHandler.openUri(substance.url) },
+                        onClick = { navigateToArticleScreen(substance.name) },
                     ) {
                         Text("Article")
                     }
@@ -532,6 +589,353 @@ fun SubstanceScreen(
                     }
                 }
             }
+            
+            // Calendar Display Settings
+            ElevatedCard(
+                modifier = Modifier
+                    .padding(
+                        horizontal = horizontalPadding,
+                        vertical = verticalPaddingCards
+                    )
+                    .fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(
+                            horizontal = horizontalPadding,
+                            vertical = 10.dp
+                        )
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Calendar Display",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Control how this substance appears in calendar views",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                text = "Hide from calendar",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Useful for everyday substances like caffeine or supplements that you don't want cluttering the calendar view. Journal entries and statistics are not affected.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = hideFromCalendar,
+                            onCheckedChange = onToggleHideFromCalendar
+                        )
+                    }
+                    
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                    
+                    // Break Tracking
+                    Text(
+                        text = "Break Tracking",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Set a recommended break period between uses",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    OutlinedTextField(
+                        value = substanceCompanion?.recommendedBreakDays?.toString() ?: "",
+                        onValueChange = { 
+                            val days = it.toIntOrNull()
+                            val companion = substanceCompanion ?: com.isaakhanimann.journal.data.room.experiences.entities.SubstanceCompanion(
+                                substanceName = substance.name,
+                                color = com.isaakhanimann.journal.data.room.experiences.entities.AdaptiveColor.BLUE
+                            )
+                            onUpdateSubstanceCompanion(companion.copy(recommendedBreakDays = days))
+                        },
+                        label = { Text("Recommended break (days)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+            
+            // Custom Dosage Settings
+            val roasWithDosage = substance.roas.filter { it.roaDose != null }
+            if (roasWithDosage.isNotEmpty()) {
+                var showDosageSheet by remember { mutableStateOf(false) }
+                var selectedRoute by remember { mutableStateOf<com.isaakhanimann.journal.data.substances.AdministrationRoute?>(null) }
+                
+                ElevatedCard(
+                    modifier = Modifier
+                        .padding(
+                            horizontal = horizontalPadding,
+                            vertical = verticalPaddingCards
+                        )
+                        .fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(
+                                horizontal = horizontalPadding,
+                                vertical = 10.dp
+                            )
+                            .fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Custom Dosage Ranges",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        Text(
+                            text = "Set your personal dosage ranges (optional)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        // Show each ROA with custom dosage status
+                        roasWithDosage.forEach { roa ->
+                            val customDosage = customDosages[roa.route]
+                            val defaultUnit = roa.roaDose?.units ?: "mg"
+                            
+                            HorizontalDivider()
+                            
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        selectedRoute = roa.route
+                                        showDosageSheet = true
+                                    }
+                                    .padding(vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = roa.route.displayText,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    if (customDosage != null) {
+                                        val rangeText = buildString {
+                                            customDosage.commonMin?.let { min ->
+                                                customDosage.commonMax?.let { max ->
+                                                    append("Custom: $min-$max $defaultUnit")
+                                                }
+                                            }
+                                        }
+                                        Text(
+                                            text = rangeText.ifBlank { "Custom set" },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Text(
+                                            text = "Using database defaults",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Edit",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                // Custom Dosage Sheet
+                if (showDosageSheet && selectedRoute != null) {
+                    val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+                    val route = selectedRoute!!
+                    val existingDosage = customDosages[route]
+                    val defaultUnit = roasWithDosage.find { it.route == route }?.roaDose?.units ?: "mg"
+                    
+                    com.isaakhanimann.journal.ui.tabs.search.substance.customdosage.CustomDosageSheet(
+                        substanceName = substance.name,
+                        route = route,
+                        existingDosage = existingDosage,
+                        unit = defaultUnit,
+                        onSave = { dosage ->
+                            onSaveDosage(dosage)
+                            showDosageSheet = false
+                        },
+                        onDelete = if (existingDosage != null) {
+                            {
+                                onDeleteDosage(existingDosage)
+                                showDosageSheet = false
+                            }
+                        } else null,
+                        onDismiss = { showDosageSheet = false },
+                        sheetState = sheetState
+                    )
+                }
+            }
+            
+            // Custom Duration Settings
+            var showDurationSheet by remember { mutableStateOf(false) }
+            
+            ElevatedCard(
+                modifier = Modifier
+                    .padding(
+                        horizontal = horizontalPadding,
+                        vertical = verticalPaddingCards
+                    )
+                    .fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(
+                            horizontal = horizontalPadding,
+                            vertical = 10.dp
+                        )
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Custom Duration Settings",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Text(
+                        text = "Override duration assumptions (optional)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    // Show status
+                    if (substanceCompanion?.hasCustomDurations() == true) {
+                        val totalDuration = buildString {
+                            substanceCompanion.totalMin?.let { min ->
+                                substanceCompanion.totalMax?.let { max ->
+                                    append("Total: ${min.toReadableDuration()}-${max.toReadableDuration()}")
+                                }
+                            }
+                        }
+                        
+                        Text(
+                            text = totalDuration.ifBlank { "Custom durations set" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Using custom timeline",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        Text(
+                            text = "Using database defaults",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Button(
+                        onClick = { showDurationSheet = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit"
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Edit Durations")
+                    }
+                }
+            }
+            
+            // Custom Duration Sheet
+            if (showDurationSheet) {
+                val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+                
+                com.isaakhanimann.journal.ui.tabs.search.substance.customduration.CustomDurationSheet(
+                    substanceName = substance.name,
+                    existingCompanion = substanceCompanion,
+                    onSave = { companion ->
+                        onUpdateSubstanceCompanion(companion)
+                        showDurationSheet = false
+                    },
+                    onDelete = if (substanceCompanion?.hasCustomDurations() == true) {
+                        {
+                            onDeleteCustomDurations()
+                            showDurationSheet = false
+                        }
+                    } else null,
+                    onDismiss = { showDurationSheet = false },
+                    sheetState = sheetState
+                )
+            }
+            
+            // Harm Reduction Section
+            var showMitigationSheet by remember { mutableStateOf(false) }
+            var selectedMitigation by remember { mutableStateOf<com.isaakhanimann.journal.data.substances.classes.harm_reduction.MitigationType?>(null) }
+            
+            com.isaakhanimann.journal.ui.tabs.search.substance.harm_reduction.SideEffectsSection(
+                substance = substance,
+                sideEffects = sideEffects,
+                onMitigationClick = { mitigationType ->
+                    selectedMitigation = mitigationType
+                    showMitigationSheet = true
+                },
+                hydrationRemindersEnabled = hydrationRemindersEnabled,
+                onHydrationRemindersChange = onHydrationRemindersChange,
+                recoveryReminderEnabled = recoveryReminderEnabled,
+                onRecoveryReminderChange = onRecoveryReminderChange,
+                sleepReminderEnabled = sleepReminderEnabled,
+                onSleepReminderChange = onSleepReminderChange
+            )
+            
+            // Mitigation Reference Sheet
+            if (showMitigationSheet && selectedMitigation != null) {
+                val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+                com.isaakhanimann.journal.ui.tabs.search.substance.harm_reduction.MitigationReferenceSheet(
+                    mitigationInfo = getMitigationInfo(selectedMitigation!!),
+                    sheetState = sheetState,
+                    onDismiss = { showMitigationSheet = false }
+                )
+            }
+            
             Spacer(modifier = Modifier.height(70.dp))
         }
     }

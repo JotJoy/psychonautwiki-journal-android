@@ -38,6 +38,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.isaakhanimann.journal.data.substances.AdministrationRoute
+import com.isaakhanimann.journal.ui.tabs.search.substance.customduration.hasCustomDurations
+import com.isaakhanimann.journal.ui.tabs.search.substance.customdosage.CustomDosageSheet
+import com.isaakhanimann.journal.ui.tabs.search.substance.customduration.CustomDurationSheet
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +50,10 @@ fun EditCustomSubstanceScreen(
     navigateBack: () -> Unit,
     viewModel: EditCustomSubstanceViewModel = hiltViewModel()
 ) {
+    var showDosageSheet by remember { mutableStateOf(false) }
+    var showDurationSheet by remember { mutableStateOf(false) }
+    var selectedRoaForDosage by remember { mutableStateOf<com.isaakhanimann.journal.data.substances.AdministrationRoute?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Edit custom substance") }, actions = {
@@ -112,7 +120,73 @@ fun EditCustomSubstanceScreen(
             description = viewModel.description,
             onNameChange = { viewModel.name = it },
             onUnitsChange = { viewModel.units = it },
-            onDescriptionChange = { viewModel.description = it }
+            onDescriptionChange = { viewModel.description = it },
+            hideFromCalendar = viewModel.hideFromCalendar,
+            onHideFromCalendarChange = viewModel::toggleHideFromCalendar,
+            recommendedBreakDays = viewModel.recommendedBreakDays,
+            onRecommendedBreakDaysChange = { viewModel.recommendedBreakDays = it },
+            onEditDosages = { showDosageSheet = true },
+            onEditDurations = { showDurationSheet = true },
+            hasCustomDosages = viewModel.customDosages.isNotEmpty(),
+            hasCustomDurations = viewModel.substanceCompanion?.hasCustomDurations() ?: false,
+            hydrationRemindersEnabled = viewModel.hydrationRemindersEnabled,
+            onHydrationRemindersChange = viewModel::setHydrationReminders,
+            recoveryReminderEnabled = viewModel.recoveryReminderEnabled,
+            onRecoveryReminderChange = viewModel::setRecoveryReminder,
+            sleepReminderEnabled = viewModel.sleepReminderEnabled,
+            onSleepReminderChange = viewModel::setSleepReminder
         )
+
+        if (showDosageSheet) {
+            val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+            
+            // For custom substances we just use ORAL as default for simple editor access, 
+            // or show a selection if we wanted to be more thorough.
+            // But for unification, let's just pick one or show Roa selection.
+            // For now, let's keep it simple and default to ORAL or what's existing.
+            
+            val roa = selectedRoaForDosage ?: com.isaakhanimann.journal.data.substances.AdministrationRoute.ORAL
+            val existingDosage = viewModel.customDosages[roa]
+            
+            CustomDosageSheet(
+                substanceName = viewModel.name,
+                route = roa,
+                existingDosage = existingDosage,
+                unit = viewModel.units,
+                onSave = { dosage ->
+                    viewModel.saveDosage(dosage)
+                    showDosageSheet = false
+                },
+                onDelete = if (existingDosage != null) {
+                    {
+                        viewModel.deleteDosage(existingDosage)
+                        showDosageSheet = false
+                    }
+                } else null,
+                onDismiss = { showDosageSheet = false },
+                sheetState = sheetState
+            )
+        }
+
+        if (showDurationSheet) {
+            val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+            
+            CustomDurationSheet(
+                substanceName = viewModel.name,
+                existingCompanion = viewModel.substanceCompanion,
+                onSave = { companion ->
+                    viewModel.updateSubstanceCompanion(companion)
+                    showDurationSheet = false
+                },
+                onDelete = if (viewModel.substanceCompanion?.hasCustomDurations() == true) {
+                    {
+                        viewModel.deleteCustomDurations()
+                        showDurationSheet = false
+                    }
+                } else null,
+                onDismiss = { showDurationSheet = false },
+                sheetState = sheetState
+            )
+        }
     }
 }

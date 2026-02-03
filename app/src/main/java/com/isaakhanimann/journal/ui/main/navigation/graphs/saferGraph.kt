@@ -32,6 +32,7 @@ import com.isaakhanimann.journal.ui.tabs.safer.SaferHallucinogensScreen
 import com.isaakhanimann.journal.ui.tabs.safer.SaferUseScreen
 import com.isaakhanimann.journal.ui.tabs.safer.VolumetricDosingScreen
 import com.isaakhanimann.journal.ui.tabs.search.substance.SaferStimulantsScreen
+import com.isaakhanimann.journal.ui.tabs.safer.TaperCalculatorScreen
 import kotlinx.serialization.Serializable
 
 fun NavGraphBuilder.saferGraph(navController: NavHostController) {
@@ -60,6 +61,9 @@ fun NavGraphBuilder.saferGraph(navController: NavHostController) {
                 },
                 navigateToReagentTestingScreen = {
                     navController.navigate(ReagentTestingRoute)
+                },
+                navigateToTaperCalculatorScreen = {
+                    navController.navigate(TaperCalculatorRoute)
                 }
             )
         }
@@ -85,6 +89,9 @@ fun NavGraphBuilder.saferGraph(navController: NavHostController) {
         }
         composableWithTransitions<ReagentTestingRoute> {
             ReagentTestingScreen()
+        }
+        composableWithTransitions<TaperCalculatorRoute> {
+            TaperCalculatorScreen(navigateBack = navController::popBackStack)
         }
     }
 }
@@ -116,3 +123,6 @@ object DosageGuideRoute
 
 @Serializable
 object VolumetricDosingOnSaferTabRoute
+
+@Serializable
+object TaperCalculatorRoute

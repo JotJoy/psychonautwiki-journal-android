@@ -89,6 +89,12 @@ dependencies {
     implementation(libs.compose)
 
     implementation(libs.androidx.core.splashscreen)
+    
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    kapt(libs.androidx.hilt.compiler)
+    implementation(libs.jsoup)
+    implementation(libs.coil.compose)
 
 }
 

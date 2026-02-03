@@ -31,6 +31,7 @@ import com.isaakhanimann.journal.ui.tabs.settings.combinations.CombinationSettin
 import com.isaakhanimann.journal.ui.tabs.settings.customunits.CustomUnitsScreen
 import com.isaakhanimann.journal.ui.tabs.settings.customunits.archive.CustomUnitArchiveScreen
 import com.isaakhanimann.journal.ui.tabs.settings.customunits.edit.EditCustomUnitScreen
+import com.isaakhanimann.journal.ui.settings.content.DataContentScreen
 import kotlinx.serialization.Serializable
 
 fun NavGraphBuilder.settingsGraph(navController: NavHostController) {
@@ -54,10 +55,16 @@ fun NavGraphBuilder.settingsGraph(navController: NavHostController) {
                 navigateToDonate = {
                     navController.navigate(DonateRoute)
                 },
+                navigateToDataContent = {
+                    navController.navigate(DataContentRoute)
+                },
             )
         }
         composableWithTransitions<FAQRoute> { FAQScreen() }
         composableWithTransitions<DonateRoute> { DonateScreen() }
+        composableWithTransitions<DataContentRoute> {
+            DataContentScreen(navigateBack = navController::popBackStack)
+        }
         composableWithTransitions<CombinationSettingsRoute> { CombinationSettingsScreen() }
         composableWithTransitions<SubstanceColorsRoute> { SubstanceColorsScreen() }
         composableWithTransitions<CustomUnitArchiveRoute> {
@@ -108,3 +115,6 @@ object CustomUnitsRoute
 
 @Serializable
 data class EditCustomUnitRoute(val customUnitId: Int)
+
+@Serializable
+object DataContentRoute

@@ -18,6 +18,7 @@
 
 package com.isaakhanimann.journal.data.room.experiences.entities
 
+import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -32,5 +33,7 @@ data class Experience(
     val creationDate: Instant = Instant.now(),
     val sortDate: Instant,
     var isFavorite: Boolean = false,
-    @Embedded var location: Location?
+    @Embedded var location: Location?,
+    @ColumnInfo(defaultValue = "0")
+    val isHiddenFromCalendar: Boolean = false
 )

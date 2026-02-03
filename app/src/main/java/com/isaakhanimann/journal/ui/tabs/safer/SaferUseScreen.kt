@@ -63,6 +63,7 @@ fun SaferUsePreview() {
         navigateToDosageClassificationScreen = {},
         navigateToRouteExplanationScreen = {},
         navigateToReagentTestingScreen = {},
+        navigateToTaperCalculatorScreen = {},
     )
 }
 
@@ -76,6 +77,7 @@ fun SaferUseScreen(
     navigateToDosageClassificationScreen: () -> Unit,
     navigateToRouteExplanationScreen: () -> Unit,
     navigateToReagentTestingScreen: () -> Unit,
+    navigateToTaperCalculatorScreen: () -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -206,6 +208,19 @@ fun SaferUseScreen(
             }
             SectionWithTitle(title = "8. Reflection") {
                 SaferText(text = "Carefully monitor the frequency and intensity of any substance use to ensure it is not sliding into abuse and addiction. In particular, many stimulants, opioids, and depressants are known to be highly addictive.")
+                Button(
+                    onClick = navigateToTaperCalculatorScreen,
+                    modifier = Modifier.padding(horizontal = horizontalPadding)
+                ) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = "Info",
+                        modifier = Modifier.size(ButtonDefaults.IconSize),
+                    )
+                    Spacer(Modifier.size(ButtonDefaults.IconSpacing))
+                    Text("Tapering Calculator")
+                }
+                VerticalSpace()
             }
             SectionWithTitle(title = "9. Safety of others") {
                 SaferText(text = "Don’t drive, operate heavy machinery, or otherwise be directly or indirectly responsible for the safety or care of another person while intoxicated.")

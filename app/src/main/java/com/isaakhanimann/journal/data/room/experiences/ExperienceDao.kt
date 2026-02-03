@@ -40,6 +40,7 @@ import com.isaakhanimann.journal.data.room.experiences.relations.ExperienceWithI
 import com.isaakhanimann.journal.data.room.experiences.relations.ExperienceWithIngestionsTimedNotesAndRatings
 import com.isaakhanimann.journal.data.room.experiences.relations.IngestionWithCompanion
 import com.isaakhanimann.journal.data.room.experiences.relations.IngestionWithCompanionAndCustomUnit
+import com.isaakhanimann.journal.data.room.experiences.relations.IngestionWithCompanionAndExperience
 import com.isaakhanimann.journal.data.room.experiences.relations.IngestionWithExperienceAndCustomUnit
 import com.isaakhanimann.journal.ui.tabs.settings.JournalExport
 import kotlinx.coroutines.flow.Flow
@@ -179,6 +180,13 @@ interface ExperienceDao {
         fromInstant: Instant,
         toInstant: Instant
     ): List<IngestionWithCompanion>
+
+    @Transaction
+    @Query("SELECT * FROM ingestion WHERE time > :fromInstant AND time < :toInstant")
+    suspend fun getIngestionsWithCompanionsAndExperience(
+        fromInstant: Instant,
+        toInstant: Instant
+    ): List<IngestionWithCompanionAndExperience>
 
     @Transaction
     @Query("SELECT * FROM ingestion WHERE id =:id")
