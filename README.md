@@ -84,7 +84,7 @@ as a coding assistant. All decisions and reviews were done manually.
 - Encrypted export / import
 - Optional app lock
 - Calculate approximate nicotine intake from Cigarette/Cigar weight
-- Calculate approximte THC Content of Joint
+- Calculate very approximate THC Content of Joint
 - Calculate current BAC Content
 - Auto calculate mg of alcohol in a drink
 
