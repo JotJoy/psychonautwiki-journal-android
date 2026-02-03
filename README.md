@@ -87,6 +87,7 @@ as a coding assistant. All decisions and reviews were done manually.
 - Calculate very approximate THC Content of Joint
 - Calculate current BAC Content
 - Auto calculate mg of alcohol in a drink
+- Widgets
 
 ---
 
